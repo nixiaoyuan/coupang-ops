@@ -1,6 +1,32 @@
-# Coupang Ops 第一版演示
+# Coupang Ops
 
 把授权导出的销售和库存数据转成商品排名、销量变化、退货观察和补货提示。当前演示使用**完全虚构的 5 个 SKU、14 天数据**，不需要账号，也不会连接 Coupang 后台。
+
+## 作为 Codex 插件使用
+
+本仓库同时提供独立 skill 和 `Coupang Ops` 插件包。插件版本为 `0.1.0`，包含现有 skill、分析脚本、字段说明和模拟数据；需要 Python 3.10+。插件描述位于根目录 `plugin.json`，并提供 `.codex-plugin/plugin.json` 兼容描述。本地来源目录位于 `.agents/plugins/marketplace.json`。
+
+在本机安装这个仓库中的插件：
+
+```text
+codex plugin marketplace add .
+codex plugin add coupang-ops@coupang-ops-marketplace
+```
+
+在 Codex 的“插件”页面选择 `Coupang Ops Plugins` 来源，可查看插件及安装状态。如果当前界面尚未刷新，完成手头任务后重启 Codex。开始新的聊天，选择 Coupang Ops 插件下的技能，再输入：
+
+> 用自带模拟数据生成中文运营分析报告，保存到当前项目的 outputs/demo。
+
+如果本机同时安装了独立的 `$coupang-ops`，请在选择器中确认此次选中的是插件内的技能。独立 skill 的调用方式仍然有效。
+
+将插件描述和 marketplace 文件提交到 GitHub 后，其他人在支持这些插件命令的 Codex 中可以执行：
+
+```text
+codex plugin marketplace add nixiaoyuan/coupang-ops --ref main
+codex plugin add coupang-ops@coupang-ops-marketplace
+```
+
+上述 GitHub 安装要求远程仓库已经包含新插件文件。本地编辑不会自动上传。此来源用于本地试用和仓库分发；公开插件目录上架另需提交和审核。格式与来源规则见 [OpenAI 插件打包文档](https://developers.openai.com/plugins/build/plugins)。
 
 ## 先看效果
 
@@ -27,7 +53,7 @@ New-Item -ItemType Directory -Force -Path .agents/skills
 New-Item -ItemType Junction -Path .agents/skills/coupang-ops -Target (Resolve-Path skills/coupang-ops).Path
 ```
 
-链接已经存在时无需重复创建。在 Codex 中可用 `$coupang-ops` 提及该技能；若界面没有显示新技能，重新打开项目后再试。链接仅供本机使用，Git 会忽略 `.agents/`。
+链接已经存在时无需重复创建。在 Codex 中可用 `$coupang-ops` 提及该技能；若界面没有显示新技能，重新打开项目后再试。链接仅供本机使用，Git 会忽略 `.agents/skills/`，但保留插件来源目录文件。
 
 ## 换成真实数据
 

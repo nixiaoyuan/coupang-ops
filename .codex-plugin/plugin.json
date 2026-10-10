@@ -1,0 +1,23 @@
+{
+  "name": "coupang-ops",
+  "version": "0.1.0",
+  "description": "Analyze authorized Coupang sales and inventory exports, or preview the included synthetic demo.",
+  "author": {
+    "name": "nixiaoyuan",
+    "url": "https://github.com/nixiaoyuan"
+  },
+  "repository": "https://github.com/nixiaoyuan/coupang-ops",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Coupang Ops",
+    "shortDescription": "Coupang 销售、退货和库存分析",
+    "longDescription": "分析用户授权的销售和库存导出，生成商品排名、销量变化、退货观察及库存覆盖估计。包含可直接试用的模拟数据和中文报告。分析脚本需要 Python 3.10+，仅使用标准库。本版不连接店铺后台。",
+    "developerName": "nixiaoyuan",
+    "category": "Productivity",
+    "websiteURL": "https://github.com/nixiaoyuan/coupang-ops",
+    "defaultPrompt": [
+      "用 Coupang Ops 的自带模拟数据生成中文运营分析报告。",
+      "分析我提供的 Coupang 销售和库存导出，列出畅销商品、销量变化和库存风险。"
+    ]
+  }
+}
