@@ -29,7 +29,7 @@ python skills/coupang-ops/scripts/sync.py demo --output-dir outputs/v2-demo --re
 | `dingtalk_user_ids` | 可选，已核验的单个 userId 列表；接收人解析成功后写入 |
 | `request_interval` | 请求间隔秒数，默认 `0.5`，有限值 `0` 至 `60` |
 | `page_size` | 每页条数，`init` 与 `sync.py run` 默认 `100`，整数 `1` 至 `100`；每页均核验服务端实际分页数和条数 |
-| `network_retries` | 仅连接超时或连接中断的同页只读重试，默认 `2`，整数 `0` 至 `3`；认证、限流、HTTP 和结构错误不重试 |
+| `network_retries` | 仅连接超时、中断或本机连接初始化文件暂时不可用的同页只读重试，默认 `2`，整数 `0` 至 `3`；认证、限流、HTTP 和结构错误不重试 |
 | `max_pages` | 每窗口最大分页数，默认 `200`，整数 `1` 至 `1000` |
 | `thresholds` | 可选阈值覆盖，键与默认值见下方 |
 | `node_path` / `node_modules_path` | 可选的现有 Codex bundled 运行时路径；通常自动定位 |

@@ -448,7 +448,7 @@ def _perform(request: Request, transport: Callable[[Request, float], Any]) -> di
     except WingError:
         raise
     except URLError as error:
-        if isinstance(error.reason, (TimeoutError, ConnectionError)):
+        if isinstance(error.reason, (TimeoutError, ConnectionError, FileNotFoundError)):
             raise TransientNetworkError("WING connection timed out or was interrupted.") from None
         raise NetworkError("WING connection failed; collection stopped.") from None
     except (TimeoutError, ConnectionError):

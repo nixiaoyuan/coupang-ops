@@ -125,6 +125,22 @@ class WingClientTests(unittest.TestCase):
         self.assertEqual(context.verify_mode, wing.ssl.CERT_REQUIRED)
         self.assertEqual(opener.open.call_count, 2)
 
+    def test_temporary_connection_setup_file_loss_has_bounded_same_page_retry(self):
+        def intermittent(payload, call):
+            if call == 2:
+                raise URLError(FileNotFoundError(2, "synthetic private connection path"))
+            return Response(response_payload(payload["pageNumber"]))
+        transport = Transport(intermittent)
+        with patch.object(wing.time, "sleep"):
+            data = self.collect(transport)
+        self.assertEqual(len(data["sales_windows"]["last_30d"]["rows"]), 21)
+        self.assertEqual([entry[1]["pageNumber"] for entry in transport.calls[:3]], [0, 1, 1])
+        failing = Transport(lambda *_: (_ for _ in ()).throw(URLError(FileNotFoundError(2, "synthetic private path"))))
+        with patch.object(wing.time, "sleep"), self.assertRaises(wing.NetworkError) as caught:
+            self.collect(failing)
+        self.assertEqual(len(failing.calls), 3)
+        self.assertNotIn("synthetic private path", str(caught.exception))
+
     def test_configured_hundred_row_pages_validate_full_tail_without_duplicate_requests(self):
         def payload(request, call):
             page = request["pageNumber"]
