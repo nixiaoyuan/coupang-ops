@@ -176,6 +176,25 @@ class MySQLSinkTests(unittest.TestCase):
         self.assertEqual(json.loads(row["response_json"]), data["raw_windows"]["current_7d"][0])
         self.assertTrue(db.closed and db.cursor_value.closed)
 
+    def test_real_pymysql_batch_formats_bound_values_without_postfix_arguments(self):
+        try:
+            import pymysql
+        except ImportError:
+            self.skipTest("Optional ERP driver is unavailable")
+        connection = pymysql.connections.Connection(defer_connect=True, charset="utf8mb4")
+        connection.server_status = 0
+        cursor = connection.cursor()
+        _, prepared = sink._prepare([dataset(skus=("SKU-1", "SKU-2"))], states("STORE-A"), OBSERVED)
+        sent = []
+        def execute(query, args=None):
+            sent.append(query)
+            return 2
+        with patch.object(cursor, "execute", side_effect=execute):
+            cursor.executemany(sink.UPSERT_SQL, [sink._bound_row(row) for row in prepared[0][2]])
+        self.assertEqual(len(sent), 1)
+        self.assertNotIn(b"%s", bytes(sent[0]))
+        self.assertIn(b"VALUES(`amount`)", bytes(sent[0]))
+
     def test_four_status_rows_are_unique_and_store_isolated(self):
         names = ("STORE-A", "STORE-B", "STORE-C", "STORE-D")
         result, db = self.persist([dataset(name) for name in names], states(*names))

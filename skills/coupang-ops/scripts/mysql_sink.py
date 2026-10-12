@@ -46,11 +46,12 @@ CREATE_SQL = """CREATE TABLE IF NOT EXISTS `coupang_ops_sales_snapshot` (
   PRIMARY KEY (`store`, `window_key`, `sku`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
 COMMENT='coupang-ops:authorized-sales-snapshot:v1'"""
-# All SQL identifiers come from this module's fixed schema. Every value,
-# including duplicate-key updates, is bound through the driver parameters.
+# All identifiers are fixed and all values are bound in the VALUES clause.
+# Refer to the inserted values in duplicate updates so PyMySQL's optimized
+# executemany has one parameter tuple per VALUES group, without postfix args.
 UPSERT_SQL = ("INSERT INTO `coupang_ops_sales_snapshot` (" + ",".join("`" + field + "`" for field in COLUMNS)
               + ") VALUES (" + ",".join(["%s"] * len(COLUMNS)) + ") ON DUPLICATE KEY UPDATE "
-              + ",".join("`" + field + "`=" + ("COALESCE(%s,`collected_at`)" if field == "collected_at" else "%s")
+              + ",".join("`" + field + "`=" + ("COALESCE(VALUES(`collected_at`),`collected_at`)" if field == "collected_at" else "VALUES(`" + field + "`)")
                          for field in COLUMNS[3:]))
 RETIRE_SQL = ("UPDATE `coupang_ops_sales_snapshot` SET `is_current`=0,`last_attempt_at`=%s "
               "WHERE `store`=%s AND `window_key`=%s AND `row_type`='sku'")
@@ -326,7 +327,7 @@ def _prepare(datasets, store_states, observed_at):
 
 
 def _bound_row(row):
-    return row + row[3:]
+    return row
 
 
 def _schema_owned(cursor):
