@@ -1,7 +1,7 @@
 {
   "name": "coupang-ops",
-  "version": "0.1.0",
-  "description": "Analyze authorized Coupang sales and inventory exports, or preview the included synthetic demo.",
+  "version": "0.2.0",
+  "description": "Authorized four-store WING sales, five operations analyses, ERP MySQL snapshots, and personal DingTalk work notices; includes synthetic demo.",
   "author": {
     "name": "nixiaoyuan",
     "url": "https://github.com/nixiaoyuan"
@@ -10,14 +10,14 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Coupang Ops",
-    "shortDescription": "Coupang 销售、退货和库存分析",
-    "longDescription": "分析用户授权的销售和库存导出，生成商品排名、销量变化、退货观察及库存覆盖估计。包含可直接试用的模拟数据和中文报告。分析脚本需要 Python 3.10+，仅使用标准库。本版不连接店铺后台。",
+    "shortDescription": "Coupang 四店更新与五项运营分析",
+    "longDescription": "只读采集已授权 WING 销售，结合完整产品、库存、发货、交易和退货导出，生成五项中文运营分析；缺少来源时保留未知。将快照和刷新状态保存到已授权 ERP MySQL 专用新表，复用已有企业应用发送个人钉钉工作通知，并含四店合成演示。Python 3.10+；MySQL 使用已有 pymysql，可选 Excel 使用 Codex bundled Artifact Tool。用户请求后由 Codex automation 定时更新。",
     "developerName": "nixiaoyuan",
     "category": "Productivity",
     "websiteURL": "https://github.com/nixiaoyuan/coupang-ops",
     "defaultPrompt": [
-      "用 Coupang Ops 的自带模拟数据生成中文运营分析报告。",
-      "分析我提供的 Coupang 销售和库存导出，列出畅销商品、销量变化和库存风险。"
+      "用 Coupang Ops 的四店合成演示生成五项中文运营分析和数据表。",
+      "分析我授权提供的销售和运营导出，分别说明排名、下降、库存覆盖、滞销和退货情况。"
     ]
   }
 }
