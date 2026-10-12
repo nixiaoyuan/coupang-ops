@@ -10,6 +10,7 @@ import traceback
 import unittest
 from urllib.error import HTTPError, URLError
 from unittest.mock import patch
+from unittest.mock import Mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -110,6 +111,32 @@ class WingClientTests(unittest.TestCase):
         with self.assertRaises(wing.NetworkError):
             self.collect(unclassified)
         self.assertEqual(len(unclassified.calls), 1)
+
+    def test_default_transport_reuses_verified_context_and_disables_redirects(self):
+        opener = Mock()
+        with patch.object(wing, "_DEFAULT_OPENER", None), patch.object(wing, "build_opener", return_value=opener) as build:
+            wing._default_transport(wing.Request(wing.API_URL), 30)
+            wing._default_transport(wing.Request(wing.API_URL), 30)
+        self.assertEqual(build.call_count, 1)
+        handlers = build.call_args.args
+        self.assertTrue(any(isinstance(handler, wing._NoRedirect) for handler in handlers))
+        context = next(handler._context for handler in handlers if isinstance(handler, wing.HTTPSHandler))
+        self.assertTrue(context.check_hostname)
+        self.assertEqual(context.verify_mode, wing.ssl.CERT_REQUIRED)
+        self.assertEqual(opener.open.call_count, 2)
+
+    def test_configured_hundred_row_pages_validate_full_tail_without_duplicate_requests(self):
+        def payload(request, call):
+            page = request["pageNumber"]
+            total = 101
+            return Response({"vendorItems": [item(i + 1) for i in range(page * 100, min(total, (page + 1) * 100))],
+                             "soldVICount": total,
+                             "paginationDetails": {"pageSize": 100, "pageNumber": page, "totalResults": total, "totalPages": 2}})
+        transport = Transport(payload)
+        data = self.collect(transport, page_size=100)
+        self.assertEqual(len(transport.calls), 6)
+        self.assertEqual(len(data["sales_windows"]["last_30d"]["rows"]), 101)
+        self.assertTrue(all(call[1]["pageSize"] == 100 for call in transport.calls))
 
     def test_complete_paginated_windows_and_fixed_read_only_request(self):
         transport = Transport()

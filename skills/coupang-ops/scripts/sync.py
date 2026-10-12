@@ -310,6 +310,7 @@ def initialize(args):
         "dingtalk_erp_path": args.erp_config,
         "recipient_name": "倪笑缘",
         "request_interval": 0.5,
+        "page_size": 100,
         "max_pages": 200,
         "thresholds": {},
         "mysql_enabled": False,
@@ -494,7 +495,7 @@ def perform_refresh(args, config, datasets=None, extras_by_store=None):
             for store_config in stores:
                 filename = cache_path(output, store_config["store"])
                 try:
-                    dataset = fetch_store(store_config, args.analysis_date, request_interval=config.get("request_interval", .5), max_pages=config.get("max_pages", 200), progress=lambda event: atomic_json(output / "progress.json", event), network_retries=config.get("network_retries", 2))
+                    dataset = fetch_store(store_config, args.analysis_date, request_interval=config.get("request_interval", .5), max_pages=config.get("max_pages", 200), progress=lambda event: atomic_json(output / "progress.json", event), network_retries=config.get("network_retries", 2), page_size=config.get("page_size", 100))
                     dataset["refresh_status"] = "success"
                     atomic_json(filename, dataset)
                     current.append(dataset)

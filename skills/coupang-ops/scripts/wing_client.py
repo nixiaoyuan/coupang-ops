@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import math
 import re
+import ssl
 import time
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
@@ -19,7 +20,7 @@ from pathlib import Path
 from typing import Any, Callable
 from urllib.error import HTTPError, URLError
 from urllib.parse import unquote, urlsplit
-from urllib.request import HTTPRedirectHandler, Request, build_opener
+from urllib.request import HTTPRedirectHandler, HTTPSHandler, Request, build_opener
 
 
 API_URL = "https://wing.coupang.com/tenants/rfm-ss/api/business-insight/vi-detail-search"
@@ -27,6 +28,7 @@ ORIGIN = "https://wing.coupang.com"
 REFERER = "https://wing.coupang.com/tenants/business-insight/sales-analysis"
 KST = timezone(timedelta(hours=9), "Asia/Seoul")
 PAGE_SIZE = 20
+_DEFAULT_OPENER = None
 MAX_RESPONSE_BYTES = 20 * 1024 * 1024
 MAX_CAPTURE_BYTES = 40 * 1024 * 1024
 TIMEOUT_SECONDS = 30
@@ -361,7 +363,11 @@ class _NoRedirect(HTTPRedirectHandler):
 def _default_transport(request: Request, timeout: float) -> Any:
     # The normal HTTPS handler verifies certificates using the system trust
     # store. No context disabling verification or redirect forwarding is used.
-    return build_opener(_NoRedirect()).open(request, timeout=timeout)
+    global _DEFAULT_OPENER
+    if _DEFAULT_OPENER is None:
+        context = ssl.create_default_context()
+        _DEFAULT_OPENER = build_opener(_NoRedirect(), HTTPSHandler(context=context))
+    return _DEFAULT_OPENER.open(request, timeout=timeout)
 
 
 def _status_error(status: int) -> None:
@@ -475,7 +481,7 @@ def fetch_store(config: dict[str, Any], analysis_date: str | date | None = None,
                 transport: Callable[[Request, float], Any] | None = None,
                 request_interval: float = 0.5, max_pages: int = 200,
                 progress: Callable[[dict[str, Any]], Any] | None = None,
-                network_retries: int = 2) -> dict[str, Any]:
+                network_retries: int = 2, page_size: int = PAGE_SIZE) -> dict[str, Any]:
     """Collect three fully validated windows, ending before the analysis date.
 
     Only connection interruptions/timeouts get bounded read-only retries; no
@@ -491,6 +497,8 @@ def fetch_store(config: dict[str, Any], analysis_date: str | date | None = None,
         raise SchemaError("Maximum pages must be an integer between 1 and 1000.")
     if type(network_retries) is not int or not 0 <= network_retries <= 3:
         raise SchemaError("Network retries must be an integer between 0 and 3.")
+    if type(page_size) is not int or not 1 <= page_size <= 100:
+        raise SchemaError("Page size must be an integer between 1 and 100.")
     if type(request_interval) not in (int, float) or not math.isfinite(request_interval) or not 0 <= request_interval <= 60:
         raise SchemaError("Request interval must be a finite number between 0 and 60 seconds.")
     sender = transport or _default_transport
@@ -518,7 +526,7 @@ def fetch_store(config: dict[str, Any], analysis_date: str | date | None = None,
             payload = {
                 "startDate": start.isoformat(), "endDate": end.isoformat(),
                 "registrationTypes": ["NORMAL", "RFM"], "pageNumber": page,
-                "pageSize": PAGE_SIZE, "sortBy": "GMV", "sortOrder": "DESC",
+                "pageSize": page_size, "sortBy": "GMV", "sortOrder": "DESC",
                 "includeSoldVICount": True,
             }
             request = Request(API_URL, data=json.dumps(payload, separators=(",", ":")).encode("utf-8"),
@@ -545,8 +553,8 @@ def fetch_store(config: dict[str, Any], analysis_date: str | date | None = None,
                 raise SchemaError("WING response is missing required pagination fields.")
             size, number, total, pages = (_count(pagination[key], key) for key in _PAGINATION_FIELDS)
             sold = _count(response["soldVICount"], "soldVICount")
-            computed_pages = (total + PAGE_SIZE - 1) // PAGE_SIZE
-            if size != PAGE_SIZE or number != page or (pages != computed_pages and not (total == 0 and pages == 1)):
+            computed_pages = (total + page_size - 1) // page_size
+            if size != page_size or number != page or (pages != computed_pages and not (total == 0 and pages == 1)):
                 raise SchemaError("WING pagination number, size, or total page count is inconsistent.")
             if pages > max_pages or sold > total:
                 raise SchemaError("WING pagination totals exceed supported bounds.")
@@ -561,7 +569,7 @@ def fetch_store(config: dict[str, Any], analysis_date: str | date | None = None,
                               "page": page, "total_pages": pages})
                 except Exception:
                     raise SchemaError("Collection progress callback failed.") from None
-            expected_count = min(PAGE_SIZE, max(0, total - page * PAGE_SIZE))
+            expected_count = min(page_size, max(0, total - page * page_size))
             if len(items) != expected_count:
                 raise SchemaError("WING response has a missing or extra page row.")
             for item in items:
